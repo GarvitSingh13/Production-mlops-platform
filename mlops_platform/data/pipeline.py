@@ -7,15 +7,15 @@ and Parquet serialization.
 """
 
 from pathlib import Path
-from typing import Dict, Any, Tuple
+from typing import Any
+
 import joblib
 import pandas as pd
-import numpy as np
-from sklearn.model_selection import train_test_split
 from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.impute import SimpleImputer
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from mlops_platform.config.settings import settings
 from mlops_platform.data.contracts import validate_dataframe_contract
@@ -59,7 +59,7 @@ class DataPipeline:
         self,
         raw_data_path: Path = settings.BASELINE_DATA_PATH,
         save_artifacts: bool = True
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Execute full data pipeline: Ingestion -> Contract Validation -> Split -> Transform -> Save.
 
@@ -160,7 +160,7 @@ class DataPipeline:
         return summary
 
 
-def run_data_pipeline() -> Dict[str, Any]:
+def run_data_pipeline() -> dict[str, Any]:
     """Helper entrypoint to execute the pipeline with default settings."""
     pipeline = DataPipeline()
     return pipeline.run()

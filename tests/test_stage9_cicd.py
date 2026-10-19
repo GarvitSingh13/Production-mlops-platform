@@ -5,7 +5,6 @@ Verifies GitHub Actions workflow syntax, pipeline job sequencing, trigger events
 caching policies, master verification runner, and repository completeness.
 """
 
-from pathlib import Path
 import pytest
 import yaml
 

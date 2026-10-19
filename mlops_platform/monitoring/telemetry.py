@@ -5,15 +5,12 @@ Exports real-time operational SLO telemetry, request latency histograms,
 engine-specific performance metrics, prediction distributions, and drift alerts.
 """
 
-from typing import Dict, List, Optional
-import time
 from prometheus_client import (
-    Counter,
-    Histogram,
-    Gauge,
-    generate_latest,
-    CONTENT_TYPE_LATEST,
     REGISTRY,
+    Counter,
+    Gauge,
+    Histogram,
+    generate_latest,
 )
 
 # -----------------------------------------------------------------------------
@@ -133,7 +130,7 @@ def record_batch_metrics(
     status_code: int,
     total_processed: int,
     churn_count: int,
-    probabilities: List[float],
+    probabilities: list[float],
     latency_seconds: float,
 ) -> None:
     """Record telemetry observations for a vectorized batch prediction request."""
@@ -181,7 +178,7 @@ def set_model_info(model_name: str, model_version: str, onnx_accelerated: bool) 
     ).set(1)
 
 
-def update_drift_telemetry(p_values: Dict[str, float], drift_detected: bool) -> None:
+def update_drift_telemetry(p_values: dict[str, float], drift_detected: bool) -> None:
     """Update Prometheus drift gauges with fresh statistical tests."""
     for feature_name, p_val in p_values.items():
         DATA_DRIFT_SCORE_GAUGE.labels(feature_name=feature_name).set(p_val)

@@ -5,8 +5,10 @@ Pydantic v2 schemas for single and batch predictions, SHAP explanations,
 and Kubernetes liveness/readiness health probes.
 """
 
-from typing import List, Optional, Dict, Any, Literal
+from typing import Literal
+
 from pydantic import BaseModel, Field
+
 from mlops_platform.data.contracts import InferencePayload
 
 
@@ -31,7 +33,7 @@ class PredictionResponse(BaseModel):
     engine_used: Literal["onnx", "sklearn"] = Field(..., description="Inference engine that computed prediction")
     model_version: str = Field(..., description="Active production model version")
     latency_ms: float = Field(..., description="Total inference compute time in milliseconds")
-    explanations: Optional[List[FeatureExplanation]] = Field(
+    explanations: list[FeatureExplanation] | None = Field(
         None, description="Top driving SHAP feature attributions explaining the prediction"
     )
 
@@ -39,13 +41,13 @@ class PredictionResponse(BaseModel):
 class BatchPredictionRequest(BaseModel):
     """Request payload for bulk inference."""
 
-    customers: List[InferencePayload] = Field(..., min_length=1, max_length=1000)
+    customers: list[InferencePayload] = Field(..., min_length=1, max_length=1000)
 
 
 class BatchPredictionResponse(BaseModel):
     """Response payload for bulk inference."""
 
-    predictions: List[PredictionResponse]
+    predictions: list[PredictionResponse]
     total_processed: int
     batch_latency_ms: float
     engine_used: str

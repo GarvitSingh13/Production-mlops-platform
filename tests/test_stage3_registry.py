@@ -5,17 +5,15 @@ Verifies MLflow Model Registry operations, quality gates, stage transitions,
 ONNX graph compilation, and numerical parity checks.
 """
 
-from pathlib import Path
-import pytest
+import mlflow
 import numpy as np
 import pandas as pd
-import joblib
-import mlflow
+import pytest
 from sklearn.linear_model import LogisticRegression
 
 from mlops_platform.config.settings import settings
-from mlops_platform.models.registry import ModelRegistryManager, ModelGovernanceError
 from mlops_platform.models.onnx_converter import ONNXConverter
+from mlops_platform.models.registry import ModelGovernanceError, ModelRegistryManager
 
 
 class TestModelRegistry:

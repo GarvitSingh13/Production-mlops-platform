@@ -5,16 +5,14 @@ Converts Scikit-Learn models to ONNX format (Open Neural Network Exchange),
 validates numerical output parity, and benchmarks CPU inference acceleration.
 """
 
-from pathlib import Path
-from typing import Dict, Any, Tuple
-import time
 import json
-import numpy as np
-import pandas as pd
-import joblib
+import time
+from pathlib import Path
+from typing import Any
 
-import onnx
+import numpy as np
 import onnxruntime as ort
+import pandas as pd
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
 
@@ -65,7 +63,7 @@ class ONNXConverter:
         sklearn_model: Any,
         sample_df: pd.DataFrame,
         n_iterations: int = 300,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Verify numerical parity between Scikit-learn and ONNX Runtime and benchmark latency.
 

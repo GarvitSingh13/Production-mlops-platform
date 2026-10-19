@@ -5,24 +5,25 @@ Computes comprehensive classification metrics and generates evaluation plots
 (ROC Curve, Precision-Recall Curve, Confusion Matrix, Feature Importance).
 """
 
+from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Dict, Any, List, Optional
-from dataclasses import dataclass, asdict
-import json
-import numpy as np
+from typing import Any
+
 import matplotlib
+import numpy as np
+
 matplotlib.use("Agg")  # Non-interactive headless backend
 import matplotlib.pyplot as plt
 from sklearn.metrics import (
     accuracy_score,
+    confusion_matrix,
+    f1_score,
+    log_loss,
+    precision_recall_curve,
     precision_score,
     recall_score,
-    f1_score,
     roc_auc_score,
-    log_loss,
-    confusion_matrix,
     roc_curve,
-    precision_recall_curve,
 )
 
 
@@ -41,7 +42,7 @@ class EvaluationResult:
     false_negatives: int
     true_positives: int
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
 
@@ -110,7 +111,7 @@ class ModelEvaluator:
         plt.close()
 
     @staticmethod
-    def plot_confusion_matrix(cm_dict: Dict[str, int], output_path: Path):
+    def plot_confusion_matrix(cm_dict: dict[str, int], output_path: Path):
         """Generate formatted confusion matrix heatmap."""
         matrix = np.array([
             [cm_dict["true_negatives"], cm_dict["false_positives"]],
@@ -136,7 +137,7 @@ class ModelEvaluator:
         plt.close()
 
     @staticmethod
-    def plot_feature_importance(feature_names: List[str], importances: np.ndarray, output_path: Path, top_n: int = 10):
+    def plot_feature_importance(feature_names: list[str], importances: np.ndarray, output_path: Path, top_n: int = 10):
         """Generate horizontal bar chart of top N feature importances."""
         indices = np.argsort(importances)[-top_n:]
         sorted_features = [feature_names[i] for i in indices]

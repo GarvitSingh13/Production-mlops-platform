@@ -6,13 +6,13 @@ Population Stability Index (PSI) calculations to detect covariate shift, concept
 and automatically trigger MLOps model retraining pipelines.
 """
 
-from typing import Dict, List, Literal, Optional, Tuple, Any
-from pathlib import Path
-from datetime import datetime, timezone
 import json
+from datetime import UTC, datetime
+from typing import Any, Literal
+
 import numpy as np
 import pandas as pd
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from scipy import stats
 
 from mlops_platform.config.settings import settings
@@ -27,7 +27,7 @@ class FeatureDriftResult(BaseModel):
     statistical_test: str
     test_statistic: float
     p_value: float
-    psi_score: Optional[float] = None
+    psi_score: float | None = None
     drift_detected: bool
     severity: Literal["NONE", "LOW", "MODERATE", "CRITICAL"]
 
@@ -44,7 +44,7 @@ class DriftReport(BaseModel):
     overall_drift_detected: bool
     severity: Literal["HEALTHY", "WARNING", "CRITICAL"]
     retraining_triggered: bool
-    feature_results: Dict[str, FeatureDriftResult]
+    feature_results: dict[str, FeatureDriftResult]
     recommendation: str
 
 
@@ -185,7 +185,7 @@ class DriftDetector:
         base_series = self.baseline_df[feature_name].dropna().astype(str)
         target_clean = target_series.dropna().astype(str)
 
-        all_categories = sorted(list(set(base_series.unique()).union(set(target_clean.unique()))))
+        all_categories = sorted(set(base_series.unique()).union(set(target_clean.unique())))
 
         base_freq = base_series.value_counts().reindex(all_categories, fill_value=0)
         target_freq = target_clean.value_counts().reindex(all_categories, fill_value=0)
@@ -231,8 +231,8 @@ class DriftDetector:
         Returns:
             Structured DriftReport with retraining decision.
         """
-        feature_results: Dict[str, FeatureDriftResult] = {}
-        p_values_dict: Dict[str, float] = {}
+        feature_results: dict[str, FeatureDriftResult] = {}
+        p_values_dict: dict[str, float] = {}
 
         # 1. Evaluate Numerical Features
         for feat in self.numerical_features:
@@ -290,7 +290,7 @@ class DriftDetector:
             update_drift_telemetry(p_values_dict, overall_drift)
 
         return DriftReport(
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
             baseline_sample_size=len(self.baseline_df),
             target_sample_size=len(target_df),
             total_features_evaluated=total_feats,
@@ -304,7 +304,7 @@ class DriftDetector:
         )
 
 
-def trigger_automated_retraining(report: DriftReport) -> Dict[str, Any]:
+def trigger_automated_retraining(report: DriftReport) -> dict[str, Any]:
     """
     Automated Retraining Trigger Dispatcher.
 
@@ -315,13 +315,13 @@ def trigger_automated_retraining(report: DriftReport) -> Dict[str, Any]:
         return {
             "status": "skipped",
             "message": "Model retraining skipped: Feature distributions are healthy.",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
     trigger_payload = {
         "status": "triggered",
-        "trigger_id": f"RETRAIN-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "trigger_id": f"RETRAIN-{datetime.now(UTC).strftime('%Y%m%d-%H%M%S')}",
+        "timestamp": datetime.now(UTC).isoformat(),
         "drift_severity": report.severity,
         "drifted_features": [
             k for k, v in report.feature_results.items() if v.drift_detected

@@ -5,10 +5,12 @@ Computes real-time Shapley Additive exPlanations (SHAP) at serving time,
 returning the top N driving factors for every individual prediction.
 """
 
-from typing import List, Dict, Any, Optional
+from typing import Any
+
 import numpy as np
 import pandas as pd
 import shap
+
 from mlops_platform.serving.schemas import FeatureExplanation
 
 
@@ -18,8 +20,8 @@ class SHAPExplainer:
     def __init__(
         self,
         model: Any,
-        feature_names: List[str],
-        background_data: Optional[pd.DataFrame] = None,
+        feature_names: list[str],
+        background_data: pd.DataFrame | None = None,
     ):
         self.model = model
         self.feature_names = feature_names
@@ -33,14 +35,14 @@ class SHAPExplainer:
         # Initialize appropriate SHAP Explainer
         try:
             self.explainer = shap.LinearExplainer(self.model, bg_sample)
-        except Exception:
+        except Exception:  # noqa: BLE001
             self.explainer = shap.Explainer(self.model, bg_sample)
 
     def explain_instance(
         self,
         transformed_row: np.ndarray,
         top_n: int = 3
-    ) -> List[FeatureExplanation]:
+    ) -> list[FeatureExplanation]:
         """
         Compute top N feature contributions for a single transformed instance.
 
@@ -75,7 +77,7 @@ class SHAPExplainer:
         # Get indices of top N features sorted by absolute contribution
         top_indices = np.argsort(abs_values)[::-1][:top_n]
 
-        explanations: List[FeatureExplanation] = []
+        explanations: list[FeatureExplanation] = []
         for idx in top_indices:
             feat_name = self.feature_names[idx] if idx < len(self.feature_names) else f"feat_{idx}"
             raw_val = float(values[idx])

@@ -6,8 +6,10 @@ feature interactions, business rules, and intentional drift modes.
 """
 
 from pathlib import Path
+
 import numpy as np
 import pandas as pd
+
 from mlops_platform.config.settings import settings
 
 
@@ -15,7 +17,7 @@ def generate_synthetic_churn_data(
     n_samples: int = 5000,
     random_seed: int = 42,
     drift_mode: bool = False,
-    output_path: Path = None,
+    output_path: Path | None = None,
 ) -> pd.DataFrame:
     """
     Generate synthetic customer records with realistic business logic.

@@ -5,16 +5,14 @@ Verifies data generation, contract bounds, invalid input rejection,
 leak-free preprocessor fitting, and stratified split parity.
 """
 
-import pytest
-import pandas as pd
 import numpy as np
+import pytest
 from pydantic import ValidationError
 
 from mlops_platform.config.settings import settings
 from mlops_platform.data.contracts import (
-    CustomerDataRecord,
-    InferencePayload,
     ContractValidationError,
+    InferencePayload,
     validate_dataframe_contract,
 )
 from mlops_platform.data.generator import generate_synthetic_churn_data

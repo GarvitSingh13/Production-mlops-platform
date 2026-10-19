@@ -6,21 +6,14 @@ latency histogram buckets, model info gauges, alerting rules, and Grafana dashbo
 """
 
 import json
-from pathlib import Path
+
 import pytest
 import yaml
 from fastapi.testclient import TestClient
 
 from mlops_platform.config.settings import settings
+from mlops_platform.monitoring.telemetry import update_drift_telemetry
 from mlops_platform.serving.app import app
-from mlops_platform.monitoring.telemetry import (
-    INFERENCE_REQUESTS_TOTAL,
-    INFERENCE_LATENCY_SECONDS,
-    MODEL_INFO_GAUGE,
-    DATA_DRIFT_ALERT_GAUGE,
-    DATA_DRIFT_SCORE_GAUGE,
-    update_drift_telemetry,
-)
 
 
 @pytest.fixture

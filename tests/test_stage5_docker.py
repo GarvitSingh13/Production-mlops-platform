@@ -5,7 +5,6 @@ Verifies multi-stage build structure, non-root security compliance,
 healthcheck declarations, .dockerignore security coverage, and docker-compose.
 """
 
-from pathlib import Path
 import pytest
 import yaml
 

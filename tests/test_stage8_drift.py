@@ -5,10 +5,9 @@ Verifies Kolmogorov-Smirnov (KS-test), Population Stability Index (PSI), Chi-Squ
 categorical tests, drift severity grading, and automated retraining dispatchers.
 """
 
-from pathlib import Path
-import pytest
 import numpy as np
 import pandas as pd
+import pytest
 
 from mlops_platform.config.settings import settings
 from mlops_platform.data.generator import generate_synthetic_churn_data

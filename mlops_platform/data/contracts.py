@@ -5,10 +5,10 @@ Enforces strict schema constraints, data types, value ranges, and allowable
 categories on training data and live inference payloads.
 """
 
-from typing import List, Literal, Optional, Dict, Any
-from pydantic import BaseModel, Field, field_validator, model_validator
-import pandas as pd
+from typing import Any, Literal
 
+import pandas as pd
+from pydantic import BaseModel, Field, model_validator
 
 # Allowable Categorical Values
 ContractType = Literal["month-to-month", "one-year", "two-year"]
@@ -18,7 +18,7 @@ PaymentMethod = Literal["credit_card", "bank_transfer", "electronic_check"]
 class ContractValidationError(Exception):
     """Raised when incoming dataset or payload violates the data quality contract."""
 
-    def __init__(self, errors: List[Dict[str, Any]]):
+    def __init__(self, errors: list[dict[str, Any]]):
         self.errors = errors
         message = f"Data Contract Violation: Found {len(errors)} validation failure(s):\n"
         for err in errors[:10]:  # Show top 10 violations
@@ -60,7 +60,7 @@ def validate_dataframe_contract(
     df: pd.DataFrame,
     is_training: bool = True,
     raise_on_error: bool = True
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Vectorized high-performance batch validation of an entire DataFrame.
     Checks column presence, missing values, numerical bounds, and category sets.
@@ -73,7 +73,7 @@ def validate_dataframe_contract(
     Returns:
         List of error dictionaries detailing any contract violations.
     """
-    errors: List[Dict[str, Any]] = []
+    errors: list[dict[str, Any]] = []
 
     # 1. Required Columns Check
     expected_cols = [

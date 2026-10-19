@@ -6,38 +6,35 @@ execution (Scikit-Learn vs. ONNX Runtime), live SHAP explainability, and
 Kubernetes health probes.
 """
 
-from contextlib import asynccontextmanager
-from pathlib import Path
-from typing import Dict, Any, List, Literal, Optional
-from datetime import datetime, timezone
-import time
 import json
+import time
+from contextlib import asynccontextmanager
+from datetime import UTC, datetime
+from typing import Any, Literal
+
 import joblib
 import numpy as np
-import pandas as pd
-
-from fastapi import FastAPI, HTTPException, Query, Response, status
-from fastapi.responses import JSONResponse
 import onnxruntime as ort
+import pandas as pd
+from fastapi import FastAPI, HTTPException, Query, Response, status
 
 from mlops_platform.config.settings import settings
 from mlops_platform.data.contracts import InferencePayload
+from mlops_platform.monitoring.telemetry import (
+    ACTIVE_REQUESTS_GAUGE,
+    CONTENT_TYPE_LATEST,
+    get_prometheus_metrics,
+    record_batch_metrics,
+    record_inference_metric,
+    set_model_info,
+)
+from mlops_platform.serving.explainer import SHAPExplainer
 from mlops_platform.serving.schemas import (
-    PredictionResponse,
     BatchPredictionRequest,
     BatchPredictionResponse,
     LivenessResponse,
+    PredictionResponse,
     ReadinessResponse,
-    FeatureExplanation,
-)
-from mlops_platform.serving.explainer import SHAPExplainer
-from mlops_platform.monitoring.telemetry import (
-    CONTENT_TYPE_LATEST,
-    get_prometheus_metrics,
-    record_inference_metric,
-    record_batch_metrics,
-    set_model_info,
-    ACTIVE_REQUESTS_GAUGE,
 )
 
 
@@ -64,7 +61,7 @@ async def lifespan(app: FastAPI):
     app.state.sklearn_model = joblib.load(model_path)
 
     if meta_path.exists():
-        with open(meta_path, "r") as f:
+        with open(meta_path, "r") as f:  # noqa: ASYNC230
             app.state.model_meta = json.load(f)
     else:
         app.state.model_meta = {"model_name": "LogisticRegression", "run_id": "unknown"}
@@ -124,7 +121,7 @@ app = FastAPI(
 
 
 @app.get("/", tags=["System"])
-async def root() -> Dict[str, Any]:
+async def root() -> dict[str, Any]:
     """Root metadata endpoint."""
     return {
         "service": settings.API_TITLE,
@@ -153,7 +150,7 @@ async def liveness_probe():
     """Kubernetes liveness probe ensuring the server process is alive."""
     return LivenessResponse(
         status="alive",
-        timestamp=datetime.now(timezone.utc).isoformat(),
+        timestamp=datetime.now(UTC).isoformat(),
     )
 
 
@@ -190,7 +187,7 @@ async def get_model_metadata():
     benchmark_data = None
     bench_file = settings.MODELS_DIR / "champion" / "onnx_benchmark.json"
     if bench_file.exists():
-        with open(bench_file, "r") as f:
+        with open(bench_file, "r") as f:  # noqa: ASYNC230
             benchmark_data = json.load(f)
 
     return {
@@ -251,7 +248,7 @@ async def predict_single(
         if explain and app.state.explainer is not None:
             try:
                 explanations = app.state.explainer.explain_instance(X_transformed[0], top_n=3)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 print(f"[WARN] Failed to compute SHAP attribution: {e}")
 
         compute_latency_s = time.perf_counter() - t0
@@ -311,7 +308,7 @@ async def predict_batch(
             engine_used = "sklearn"
 
         # 3. Assemble Responses
-        predictions: List[PredictionResponse] = []
+        predictions: list[PredictionResponse] = []
         version_str = str(app.state.model_meta.get("run_id", "v1"))[:8]
 
         for idx, prob in enumerate(churn_probs):

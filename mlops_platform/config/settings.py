@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     ID_COLUMN: str = "customer_id"
     TARGET_COLUMN: str = "churn"
 
-    NUMERICAL_FEATURES: List[str] = [
+    NUMERICAL_FEATURES: list[str] = [
         "credit_score",
         "age",
         "tenure_months",
@@ -37,7 +37,7 @@ class Settings(BaseSettings):
         "num_support_tickets",
     ]
 
-    CATEGORICAL_FEATURES: List[str] = [
+    CATEGORICAL_FEATURES: list[str] = [
         "contract_type",
         "payment_method",
         "has_paperless_billing",

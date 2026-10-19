@@ -6,22 +6,22 @@ hyperparameters, metrics, and visual artifacts to MLflow, and identifies
 the candidate champion model.
 """
 
-from pathlib import Path
-from typing import Dict, Any, List, Tuple
-import time
 import json
+import time
+from pathlib import Path
+from typing import Any
+
 import joblib
-import pandas as pd
-import numpy as np
 import mlflow
 import mlflow.sklearn
+import numpy as np
+import pandas as pd
 from mlflow.models.signature import infer_signature
-
+from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 
 from mlops_platform.config.settings import settings
-from mlops_platform.models.evaluator import ModelEvaluator, EvaluationResult
+from mlops_platform.models.evaluator import ModelEvaluator
 
 
 class ModelTrainer:
@@ -43,7 +43,7 @@ class ModelTrainer:
         mlflow.set_tracking_uri(self.tracking_uri)
         mlflow.set_experiment(self.experiment_name)
 
-    def load_splits(self) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    def load_splits(self) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """Load preprocessed Parquet splits."""
         if not settings.TRAIN_DATA_PATH.exists():
             raise FileNotFoundError(
@@ -54,7 +54,7 @@ class ModelTrainer:
         test_df = pd.read_parquet(settings.TEST_DATA_PATH)
         return train_df, val_df, test_df
 
-    def get_candidate_models(self) -> Dict[str, Dict[str, Any]]:
+    def get_candidate_models(self) -> dict[str, dict[str, Any]]:
         """Define candidate models with their respective hyperparameters."""
         return {
             "LogisticRegression": {
@@ -94,7 +94,7 @@ class ModelTrainer:
     def train_and_log_model(
         self,
         model_name: str,
-        config: Dict[str, Any],
+        config: dict[str, Any],
         X_train: pd.DataFrame,
         y_train: np.ndarray,
         X_val: pd.DataFrame,
@@ -102,7 +102,7 @@ class ModelTrainer:
         X_test: pd.DataFrame,
         y_test: np.ndarray,
         artifact_temp_dir: Path,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Train a single model, compute metrics, and log everything to MLflow."""
         estimator = config["estimator"]
         params = config["params"]
@@ -219,7 +219,7 @@ class ModelTrainer:
             "train_time_sec": train_time_sec,
         }
 
-    def run(self) -> Dict[str, Any]:
+    def run(self) -> dict[str, Any]:
         """Execute full training suite across all candidate models and pick champion."""
         train_df, val_df, test_df = self.load_splits()
 
@@ -232,7 +232,7 @@ class ModelTrainer:
         temp_artifact_dir = settings.PROJECT_ROOT / "metrics" / "temp_artifacts"
         temp_artifact_dir.mkdir(parents=True, exist_ok=True)
 
-        results: List[Dict[str, Any]] = []
+        results: list[dict[str, Any]] = []
         for name, config in models.items():
             print(f"  --> Training and evaluating candidate: {name}...")
             res = self.train_and_log_model(
@@ -271,7 +271,7 @@ class ModelTrainer:
         }
 
 
-def run_training_pipeline() -> Dict[str, Any]:
+def run_training_pipeline() -> dict[str, Any]:
     """Helper entrypoint to execute training pipeline."""
     trainer = ModelTrainer()
     return trainer.run()

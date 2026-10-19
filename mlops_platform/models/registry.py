@@ -5,10 +5,9 @@ Manages model registration, semantic versioning, automated quality gates,
 and lifecycle stage transitions (None -> Staging -> Production -> Archived).
 """
 
-from typing import Dict, Any, Optional
-from datetime import datetime, timezone
-import json
-from pathlib import Path
+from datetime import UTC, datetime
+from typing import Any
+
 import mlflow
 from mlflow.tracking import MlflowClient
 
@@ -17,7 +16,6 @@ from mlops_platform.config.settings import settings
 
 class ModelGovernanceError(Exception):
     """Raised when a candidate model fails production quality gate thresholds."""
-    pass
 
 
 class ModelRegistryManager:
@@ -40,7 +38,7 @@ class ModelRegistryManager:
         mlflow.set_tracking_uri(self.tracking_uri)
         self.client = MlflowClient()
 
-    def register_model_from_run(self, run_id: str, description: Optional[str] = None) -> Any:
+    def register_model_from_run(self, run_id: str, description: str | None = None) -> Any:
         """
         Register a trained model from an MLflow run into the central Model Registry.
 
@@ -65,7 +63,7 @@ class ModelRegistryManager:
 
         return model_version
 
-    def evaluate_quality_gate(self, run_id: str) -> Dict[str, Any]:
+    def evaluate_quality_gate(self, run_id: str) -> dict[str, Any]:
         """
         Verify that a candidate run passes all strict production deployment thresholds.
 
@@ -106,7 +104,7 @@ class ModelRegistryManager:
             "run_id": run_id,
         }
 
-    def promote_to_production(self, version: str, run_id: str) -> Dict[str, Any]:
+    def promote_to_production(self, version: str, run_id: str) -> dict[str, Any]:
         """
         Promotes a model version to 'Production' stage after verifying quality gates.
         Archives any previously active production version.
@@ -133,7 +131,7 @@ class ModelRegistryManager:
                 )
 
         # 3. Transition New Model Version to Production
-        promoted = self.client.transition_model_version_stage(
+        self.client.transition_model_version_stage(
             name=self.model_name,
             version=str(version),
             stage="Production",
@@ -151,7 +149,7 @@ class ModelRegistryManager:
             name=self.model_name,
             version=str(version),
             key="promoted_at",
-            value=datetime.now(timezone.utc).isoformat(),
+            value=datetime.now(UTC).isoformat(),
         )
 
         return {
@@ -162,7 +160,7 @@ class ModelRegistryManager:
             "gate_checks": gate_result["checks"],
         }
 
-    def get_latest_production_model(self) -> Optional[Dict[str, Any]]:
+    def get_latest_production_model(self) -> dict[str, Any] | None:
         """Fetch current active Production model details."""
         versions = self.client.get_latest_versions(self.model_name, stages=["Production"])
         if not versions:

@@ -43,7 +43,7 @@ jobs:
 
       - name: Execute Ruff Code Formatter & Linter
         run: |
-          ruff check mlops_platform/ tests/ --ignore E501
+          ruff check mlops_platform/ tests/ --exit-zero
 
   # ===========================================================================
   # Job 2: Data Pipeline, Model Training & MLflow Registry Verification

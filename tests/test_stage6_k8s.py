@@ -7,6 +7,7 @@ targets, and NGINX canary traffic splitting annotations.
 """
 
 from pathlib import Path
+
 import pytest
 import yaml
 

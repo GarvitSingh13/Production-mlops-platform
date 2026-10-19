@@ -5,14 +5,11 @@ Verifies metrics computation, artifact plotting, MLflow experiment logging,
 and champion model selection logic.
 """
 
-from pathlib import Path
-import pytest
+import mlflow
 import numpy as np
 import pandas as pd
-import mlflow
 
-from mlops_platform.config.settings import settings
-from mlops_platform.models.evaluator import ModelEvaluator, EvaluationResult
+from mlops_platform.models.evaluator import ModelEvaluator
 from mlops_platform.models.train import ModelTrainer
 
 
@@ -69,7 +66,7 @@ class TestModelTrainingAndMLflow:
         assert "RandomForest" in candidates
         assert "GradientBoosting" in candidates
 
-        for name, cfg in candidates.items():
+        for cfg in candidates.values():
             assert "estimator" in cfg
             assert "params" in cfg
             assert "type" in cfg

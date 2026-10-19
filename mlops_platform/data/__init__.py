@@ -1,7 +1,7 @@
 from mlops_platform.data.contracts import (
+    ContractValidationError,
     CustomerDataRecord,
     InferencePayload,
-    ContractValidationError,
     validate_dataframe_contract,
 )
 from mlops_platform.data.generator import generate_synthetic_churn_data
@@ -11,11 +11,11 @@ from mlops_platform.data.pipeline import (
 )
 
 __all__ = [
-    "CustomerDataRecord",
-    "InferencePayload",
     "ContractValidationError",
-    "validate_dataframe_contract",
-    "generate_synthetic_churn_data",
+    "CustomerDataRecord",
     "DataPipeline",
+    "InferencePayload",
+    "generate_synthetic_churn_data",
     "run_data_pipeline",
+    "validate_dataframe_contract",
 ]
