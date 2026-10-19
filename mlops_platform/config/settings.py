@@ -1,11 +1,12 @@
 from pathlib import Path
 from typing import List
-from pydantic import Field
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     """Centralized configuration for the MLOps Platform."""
+
+    model_config = SettingsConfigDict(arbitrary_types_allowed=True)
 
     # Project Paths
     PROJECT_ROOT: Path = Path(__file__).resolve().parent.parent.parent
@@ -58,9 +59,6 @@ class Settings(BaseSettings):
     API_PORT: int = 8000
     API_TITLE: str = "Enterprise MLOps Inference Service"
     API_VERSION: str = "1.0.0"
-
-    class Config:
-        arbitrary_types_allowed = True
 
 
 # Global Settings Singleton

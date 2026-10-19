@@ -1,0 +1,24 @@
+{
+  "model_name": "LogisticRegression",
+  "run_id": "ad25b0d90e4b44338215cb2d1c02fb96",
+  "val_roc_auc": 0.8555596738324684,
+  "val_f1": 0.49498327759197325,
+  "test_roc_auc": 0.826945885841364,
+  "p95_latency_ms": 0.5904199992073699,
+  "feature_names": [
+    "credit_score",
+    "age",
+    "tenure_months",
+    "monthly_charges",
+    "total_charges",
+    "num_support_tickets",
+    "contract_type_month-to-month",
+    "contract_type_one-year",
+    "contract_type_two-year",
+    "payment_method_bank_transfer",
+    "payment_method_credit_card",
+    "payment_method_electronic_check",
+    "has_paperless_billing_0",
+    "has_paperless_billing_1"
+  ]
+}
