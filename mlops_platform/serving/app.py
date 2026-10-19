@@ -16,7 +16,7 @@ import joblib
 import numpy as np
 import pandas as pd
 
-from fastapi import FastAPI, HTTPException, Query, status
+from fastapi import FastAPI, HTTPException, Query, Response, status
 from fastapi.responses import JSONResponse
 import onnxruntime as ort
 
@@ -31,6 +31,14 @@ from mlops_platform.serving.schemas import (
     FeatureExplanation,
 )
 from mlops_platform.serving.explainer import SHAPExplainer
+from mlops_platform.monitoring.telemetry import (
+    CONTENT_TYPE_LATEST,
+    get_prometheus_metrics,
+    record_inference_metric,
+    record_batch_metrics,
+    set_model_info,
+    ACTIVE_REQUESTS_GAUGE,
+)
 
 
 @asynccontextmanager
@@ -91,6 +99,13 @@ async def lifespan(app: FastAPI):
         background_data=bg_df,
     )
 
+    # 6. Set Model Info Gauge in Prometheus
+    set_model_info(
+        model_name=app.state.model_meta.get("model_name", "LogisticRegression"),
+        model_version=str(app.state.model_meta.get("run_id", "v1"))[:8],
+        onnx_accelerated=app.state.onnx_loaded,
+    )
+
     print(f"[STARTUP] Serving service ready. Active Model: {app.state.model_meta.get('model_name')}")
     yield
     print("[SHUTDOWN] Cleaning up model serving resources.")
@@ -122,8 +137,15 @@ async def root() -> Dict[str, Any]:
             "liveness_probe": "GET /health/live",
             "readiness_probe": "GET /health/ready",
             "model_metadata": "GET /model/metadata",
+            "prometheus_metrics": "GET /metrics",
         },
     }
+
+
+@app.get("/metrics", tags=["Observability"])
+async def metrics():
+    """Prometheus exposition format metrics scraper endpoint."""
+    return Response(content=get_prometheus_metrics(), media_type=CONTENT_TYPE_LATEST)
 
 
 @app.get("/health/live", response_model=LivenessResponse, tags=["Health"])
@@ -195,54 +217,69 @@ async def predict_single(
     """
     Generate churn prediction for a single customer record with optional SHAP explainability.
     """
+    ACTIVE_REQUESTS_GAUGE.labels(endpoint="/predict").inc()
     t0 = time.perf_counter()
+    try:
+        # 1. Transform raw payload using ColumnTransformer
+        df_raw = _payload_to_dataframe(payload)
+        X_raw = df_raw[settings.NUMERICAL_FEATURES + settings.CATEGORICAL_FEATURES]
+        X_transformed = app.state.preprocessor.transform(X_raw)
 
-    # 1. Transform raw payload using ColumnTransformer
-    df_raw = _payload_to_dataframe(payload)
-    X_raw = df_raw[settings.NUMERICAL_FEATURES + settings.CATEGORICAL_FEATURES]
-    X_transformed = app.state.preprocessor.transform(X_raw)
+        # 2. Compute Probability based on selected engine
+        if engine == "onnx" and app.state.onnx_loaded:
+            onnx_input = {app.state.onnx_input_name: X_transformed.astype(np.float32)}
+            raw_output = app.state.onnx_session.run([app.state.onnx_output_name], onnx_input)[0]
+            churn_prob = float(raw_output[0, 1])
+            engine_used = "onnx"
+        else:
+            # Fallback or explicit Scikit-Learn
+            df_transformed = pd.DataFrame(X_transformed, columns=app.state.feature_names)
+            churn_prob = float(app.state.sklearn_model.predict_proba(df_transformed)[0, 1])
+            engine_used = "sklearn"
 
-    # 2. Compute Probability based on selected engine
-    if engine == "onnx" and app.state.onnx_loaded:
-        onnx_input = {app.state.onnx_input_name: X_transformed.astype(np.float32)}
-        raw_output = app.state.onnx_session.run([app.state.onnx_output_name], onnx_input)[0]
-        churn_prob = float(raw_output[0, 1])
-        engine_used = "onnx"
-    else:
-        # Fallback or explicit Scikit-Learn
-        df_transformed = pd.DataFrame(X_transformed, columns=app.state.feature_names)
-        churn_prob = float(app.state.sklearn_model.predict_proba(df_transformed)[0, 1])
-        engine_used = "sklearn"
+        # 3. Classify and Tier Risk
+        prediction = 1 if churn_prob >= 0.50 else 0
+        if churn_prob >= 0.70:
+            risk_tier = "HIGH"
+        elif churn_prob >= 0.40:
+            risk_tier = "MEDIUM"
+        else:
+            risk_tier = "LOW"
 
-    # 3. Classify and Tier Risk
-    prediction = 1 if churn_prob >= 0.50 else 0
-    if churn_prob >= 0.70:
-        risk_tier = "HIGH"
-    elif churn_prob >= 0.40:
-        risk_tier = "MEDIUM"
-    else:
-        risk_tier = "LOW"
+        # 4. Compute SHAP Explanations (if requested)
+        explanations = None
+        if explain and app.state.explainer is not None:
+            try:
+                explanations = app.state.explainer.explain_instance(X_transformed[0], top_n=3)
+            except Exception as e:
+                print(f"[WARN] Failed to compute SHAP attribution: {e}")
 
-    # 4. Compute SHAP Explanations (if requested)
-    explanations = None
-    if explain and app.state.explainer is not None:
-        try:
-            explanations = app.state.explainer.explain_instance(X_transformed[0], top_n=3)
-        except Exception as e:
-            print(f"[WARN] Failed to compute SHAP attribution: {e}")
+        compute_latency_s = time.perf_counter() - t0
+        compute_latency_ms = round(compute_latency_s * 1000, 4)
 
-    compute_latency_ms = round((time.perf_counter() - t0) * 1000, 4)
+        # 5. Record Prometheus Metrics
+        record_inference_metric(
+            endpoint="/predict",
+            engine=engine_used,
+            status_code=200,
+            prediction_class=prediction,
+            probability=churn_prob,
+            risk_tier=risk_tier,
+            latency_seconds=compute_latency_s,
+        )
 
-    return PredictionResponse(
-        customer_id=payload.customer_id,
-        churn_prediction=prediction,
-        churn_probability=round(churn_prob, 4),
-        risk_tier=risk_tier,
-        engine_used=engine_used,
-        model_version=str(app.state.model_meta.get("run_id", "v1"))[:8],
-        latency_ms=compute_latency_ms,
-        explanations=explanations,
-    )
+        return PredictionResponse(
+            customer_id=payload.customer_id,
+            churn_prediction=prediction,
+            churn_probability=round(churn_prob, 4),
+            risk_tier=risk_tier,
+            engine_used=engine_used,
+            model_version=str(app.state.model_meta.get("run_id", "v1"))[:8],
+            latency_ms=compute_latency_ms,
+            explanations=explanations,
+        )
+    finally:
+        ACTIVE_REQUESTS_GAUGE.labels(endpoint="/predict").dec()
 
 
 @app.post("/predict_batch", response_model=BatchPredictionResponse, tags=["Inference"])
@@ -253,56 +290,72 @@ async def predict_batch(
     """
     High-throughput vectorized bulk prediction for up to 1,000 customers in a single request.
     """
+    ACTIVE_REQUESTS_GAUGE.labels(endpoint="/predict_batch").inc()
     t0 = time.perf_counter()
+    try:
+        # 1. Vectorized DataFrame Assembly
+        records = [c.model_dump() for c in request.customers]
+        df_raw = pd.DataFrame(records)
+        X_raw = df_raw[settings.NUMERICAL_FEATURES + settings.CATEGORICAL_FEATURES]
+        X_transformed = app.state.preprocessor.transform(X_raw)
 
-    # 1. Vectorized DataFrame Assembly
-    records = [c.model_dump() for c in request.customers]
-    df_raw = pd.DataFrame(records)
-    X_raw = df_raw[settings.NUMERICAL_FEATURES + settings.CATEGORICAL_FEATURES]
-    X_transformed = app.state.preprocessor.transform(X_raw)
-
-    # 2. Vectorized Probability Calculation
-    if engine == "onnx" and app.state.onnx_loaded:
-        onnx_input = {app.state.onnx_input_name: X_transformed.astype(np.float32)}
-        raw_output = app.state.onnx_session.run([app.state.onnx_output_name], onnx_input)[0]
-        churn_probs = raw_output[:, 1].tolist()
-        engine_used = "onnx"
-    else:
-        df_transformed = pd.DataFrame(X_transformed, columns=app.state.feature_names)
-        churn_probs = app.state.sklearn_model.predict_proba(df_transformed)[:, 1].tolist()
-        engine_used = "sklearn"
-
-    # 3. Assemble Responses
-    predictions: List[PredictionResponse] = []
-    version_str = str(app.state.model_meta.get("run_id", "v1"))[:8]
-
-    for idx, prob in enumerate(churn_probs):
-        pred = 1 if prob >= 0.50 else 0
-        if prob >= 0.70:
-            tier = "HIGH"
-        elif prob >= 0.40:
-            tier = "MEDIUM"
+        # 2. Vectorized Probability Calculation
+        if engine == "onnx" and app.state.onnx_loaded:
+            onnx_input = {app.state.onnx_input_name: X_transformed.astype(np.float32)}
+            raw_output = app.state.onnx_session.run([app.state.onnx_output_name], onnx_input)[0]
+            churn_probs = raw_output[:, 1].tolist()
+            engine_used = "onnx"
         else:
-            tier = "LOW"
+            df_transformed = pd.DataFrame(X_transformed, columns=app.state.feature_names)
+            churn_probs = app.state.sklearn_model.predict_proba(df_transformed)[:, 1].tolist()
+            engine_used = "sklearn"
 
-        predictions.append(
-            PredictionResponse(
-                customer_id=request.customers[idx].customer_id,
-                churn_prediction=pred,
-                churn_probability=round(prob, 4),
-                risk_tier=tier,
-                engine_used=engine_used,
-                model_version=version_str,
-                latency_ms=0.0,
-                explanations=None,
+        # 3. Assemble Responses
+        predictions: List[PredictionResponse] = []
+        version_str = str(app.state.model_meta.get("run_id", "v1"))[:8]
+
+        for idx, prob in enumerate(churn_probs):
+            pred = 1 if prob >= 0.50 else 0
+            if prob >= 0.70:
+                tier = "HIGH"
+            elif prob >= 0.40:
+                tier = "MEDIUM"
+            else:
+                tier = "LOW"
+
+            predictions.append(
+                PredictionResponse(
+                    customer_id=request.customers[idx].customer_id,
+                    churn_prediction=pred,
+                    churn_probability=round(prob, 4),
+                    risk_tier=tier,
+                    engine_used=engine_used,
+                    model_version=version_str,
+                    latency_ms=0.0,
+                    explanations=None,
+                )
             )
+
+        batch_latency_s = time.perf_counter() - t0
+        batch_latency_ms = round(batch_latency_s * 1000, 3)
+
+        # 4. Record Prometheus Telemetry
+        churn_count = sum(1 for p in churn_probs if p >= 0.50)
+        record_batch_metrics(
+            endpoint="/predict_batch",
+            engine=engine_used,
+            status_code=200,
+            total_processed=len(predictions),
+            churn_count=churn_count,
+            probabilities=churn_probs,
+            latency_seconds=batch_latency_s,
         )
 
-    batch_latency = round((time.perf_counter() - t0) * 1000, 3)
-
-    return BatchPredictionResponse(
-        predictions=predictions,
-        total_processed=len(predictions),
-        batch_latency_ms=batch_latency,
-        engine_used=engine_used,
-    )
+        return BatchPredictionResponse(
+            predictions=predictions,
+            total_processed=len(predictions),
+            batch_latency_ms=batch_latency_ms,
+            engine_used=engine_used,
+        )
+    finally:
+        ACTIVE_REQUESTS_GAUGE.labels(endpoint="/predict_batch").dec()

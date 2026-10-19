@@ -1,0 +1,43 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+  scrape_timeout: 4s
+
+rule_files:
+  - alert_rules.yml
+
+scrape_configs:
+  - job_name: "mlops-inference-service"
+    metrics_path: "/metrics"
+    scheme: "http"
+    static_configs:
+      - targets:
+          - "localhost:8000"
+          - "inference-service:8000"
+          - "mlops-inference-service.mlops-production.svc.cluster.local:80"
+        labels:
+          app: "mlops-inference"
+          env: "production"
+          service: "customer-churn-inference"
+
+  - job_name: "kubernetes-pods-telemetry"
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+            - mlops-production
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: "true"
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)

@@ -1,0 +1,32 @@
+groups:
+  - name: mlops_slo_alerts
+    rules:
+      - alert: P99LatencySLOBreached
+        expr: histogram_quantile(0.99, sum(rate(mlops_inference_latency_seconds_bucket[1m])) by (le, engine)) > 0.050
+        for: 1m
+        labels:
+          severity: critical
+          team: mlops-engineering
+        annotations:
+          summary: "Inference P99 latency exceeded 50ms SLO"
+          description: "Engine {{ $labels.engine }} is reporting P99 latency above 50ms over the last minute."
+
+      - alert: HighInferenceErrorRate
+        expr: sum(rate(mlops_inference_requests_total{status=~"5.."}[1m])) / sum(rate(mlops_inference_requests_total[1m])) > 0.02
+        for: 2m
+        labels:
+          severity: warning
+          team: mlops-engineering
+        annotations:
+          summary: "Inference 5xx error rate exceeded 2%"
+          description: "Microservice error rate is currently at {{ $value | humanizePercentage }}."
+
+      - alert: StatisticalDataDriftDetected
+        expr: mlops_data_drift_detected == 1
+        for: 30s
+        labels:
+          severity: warning
+          team: mlops-engineering
+        annotations:
+          summary: "Significant feature data drift detected"
+          description: "Kolmogorov-Smirnov feature drift test p-value fell below 0.05 threshold. Trigger automated model retraining."

@@ -1,0 +1,244 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": true,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "Production Inference Throughput & Microservice Health",
+      "type": "row"
+    },
+    {
+      "id": 1,
+      "title": "Inference Throughput (RPS by Engine & Endpoint)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 1 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(mlops_inference_requests_total[1m])) by (endpoint, engine)",
+          "legendFormat": "{{endpoint}} ({{engine}})",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "lineInterpolation": "smooth", "fillOpacity": 15 },
+          "unit": "reqps"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Inference Latency Percentiles (P50, P95, P99 vs SLO)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 1 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(mlops_inference_latency_seconds_bucket[1m])) by (le)) * 1000",
+          "legendFormat": "P50 Latency (ms)",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(mlops_inference_latency_seconds_bucket[1m])) by (le)) * 1000",
+          "legendFormat": "P95 Latency (ms)",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(mlops_inference_latency_seconds_bucket[1m])) by (le)) * 1000",
+          "legendFormat": "P99 Latency (ms)",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "lineInterpolation": "smooth" },
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 10.0 },
+              { "color": "red", "value": 50.0 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Dual-Engine Latency: ONNX vs Scikit-Learn",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 1 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(mlops_inference_latency_seconds_bucket{engine=\"onnx\"}[1m])) by (le)) * 1000",
+          "legendFormat": "ONNX Runtime (ms)",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(mlops_inference_latency_seconds_bucket{engine=\"sklearn\"}[1m])) by (le)) * 1000",
+          "legendFormat": "Scikit-Learn (ms)",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "fillOpacity": 20 },
+          "unit": "ms"
+        }
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
+      "id": 200,
+      "title": "Prediction Quality, Drift Telemetry & Anomaly Alerts",
+      "type": "row"
+    },
+    {
+      "id": 4,
+      "title": "Customer Churn Risk Distribution",
+      "type": "bargauge",
+      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 10 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(mlops_inference_requests_total{prediction_class=\"1\"}[1m]))",
+          "legendFormat": "Churners (Class 1)",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(mlops_inference_requests_total{prediction_class=\"0\"}[1m]))",
+          "legendFormat": "Retained (Class 0)",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "blue", "value": null },
+              { "color": "orange", "value": 50 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Active In-Flight Inference Requests",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 6, "x": 6, "y": 10 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(mlops_active_requests)",
+          "legendFormat": "Current In-Flight Requests",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 50 },
+              { "color": "red", "value": 100 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "Feature Drift Statistical P-Values (KS-Test)",
+      "type": "bargauge",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 10 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "mlops_data_drift_pvalue",
+          "legendFormat": "{{feature_name}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": 0 },
+              { "color": "yellow", "value": 0.05 },
+              { "color": "green", "value": 0.1 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "Automated Drift Trigger Status",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 10 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "mlops_data_drift_detected",
+          "legendFormat": "Drift Alert State (1=Drift / 0=Healthy)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [
+            { "options": { "0": { "text": "HEALTHY BASELINE", "color": "green" }, "1": { "text": "DRIFT DETECTED - RETRAIN TRIGGERED", "color": "red" } }, "type": "value" }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["mlops", "prometheus", "onnx", "fastapi", "customer-churn"],
+  "time": { "from": "now-15m", "to": "now" },
+  "timepicker": { "refresh_intervals": ["5s", "10s", "30s", "1m", "5m"] },
+  "timezone": "browser",
+  "title": "Enterprise MLOps Command Center - Live Observability & SLO Dashboard",
+  "uid": "mlops-live-observability",
+  "version": 1
+}
