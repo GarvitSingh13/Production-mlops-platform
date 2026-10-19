@@ -1,0 +1,104 @@
+{
+  "timestamp": "2026-10-19T21:44:21.510611+00:00",
+  "baseline_sample_size": 6000,
+  "target_sample_size": 600,
+  "total_features_evaluated": 9,
+  "drifted_feature_count": 9,
+  "drift_ratio": 1.0,
+  "overall_drift_detected": true,
+  "severity": "CRITICAL",
+  "retraining_triggered": true,
+  "feature_results": {
+    "credit_score": {
+      "feature_name": "credit_score",
+      "feature_type": "numerical",
+      "statistical_test": "Kolmogorov-Smirnov (2-Sample) + PSI",
+      "test_statistic": 0.2505,
+      "p_value": 0.0,
+      "psi_score": 0.401,
+      "drift_detected": true,
+      "severity": "CRITICAL"
+    },
+    "age": {
+      "feature_name": "age",
+      "feature_type": "numerical",
+      "statistical_test": "Kolmogorov-Smirnov (2-Sample) + PSI",
+      "test_statistic": 0.1157,
+      "p_value": 1e-6,
+      "psi_score": 0.0883,
+      "drift_detected": true,
+      "severity": "CRITICAL"
+    },
+    "tenure_months": {
+      "feature_name": "tenure_months",
+      "feature_type": "numerical",
+      "statistical_test": "Kolmogorov-Smirnov (2-Sample) + PSI",
+      "test_statistic": 0.3413,
+      "p_value": 0.0,
+      "psi_score": 2.2265,
+      "drift_detected": true,
+      "severity": "CRITICAL"
+    },
+    "monthly_charges": {
+      "feature_name": "monthly_charges",
+      "feature_type": "numerical",
+      "statistical_test": "Kolmogorov-Smirnov (2-Sample) + PSI",
+      "test_statistic": 0.367,
+      "p_value": 0.0,
+      "psi_score": 0.7572,
+      "drift_detected": true,
+      "severity": "CRITICAL"
+    },
+    "total_charges": {
+      "feature_name": "total_charges",
+      "feature_type": "numerical",
+      "statistical_test": "Kolmogorov-Smirnov (2-Sample) + PSI",
+      "test_statistic": 0.0938,
+      "p_value": 0.000126,
+      "psi_score": 0.0502,
+      "drift_detected": true,
+      "severity": "CRITICAL"
+    },
+    "num_support_tickets": {
+      "feature_name": "num_support_tickets",
+      "feature_type": "numerical",
+      "statistical_test": "Kolmogorov-Smirnov (2-Sample) + PSI",
+      "test_statistic": 0.6027,
+      "p_value": 0.0,
+      "psi_score": 1.9823,
+      "drift_detected": true,
+      "severity": "CRITICAL"
+    },
+    "contract_type": {
+      "feature_name": "contract_type",
+      "feature_type": "categorical",
+      "statistical_test": "Chi-Square Contingency Test",
+      "test_statistic": 139.1119,
+      "p_value": 0.0,
+      "psi_score": null,
+      "drift_detected": true,
+      "severity": "CRITICAL"
+    },
+    "payment_method": {
+      "feature_name": "payment_method",
+      "feature_type": "categorical",
+      "statistical_test": "Chi-Square Contingency Test",
+      "test_statistic": 114.1863,
+      "p_value": 0.0,
+      "psi_score": null,
+      "drift_detected": true,
+      "severity": "CRITICAL"
+    },
+    "has_paperless_billing": {
+      "feature_name": "has_paperless_billing",
+      "feature_type": "categorical",
+      "statistical_test": "Chi-Square Contingency Test",
+      "test_statistic": 51.8148,
+      "p_value": 0.0,
+      "psi_score": null,
+      "drift_detected": true,
+      "severity": "CRITICAL"
+    }
+  },
+  "recommendation": "CRITICAL DATA DRIFT DETECTED: Significant statistical shift in core business features. Immediate automated retraining pipeline triggered."
+}
