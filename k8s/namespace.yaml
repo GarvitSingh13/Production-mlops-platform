@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mlops-production
+  labels:
+    environment: production
+    app.kubernetes.io/name: production-mlops-platform
+    app.kubernetes.io/part-of: enterprise-mlops
+    security.kubernetes.io/enforce: restricted

@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mlops-inference-service
+  namespace: mlops-production
+  labels:
+    app: mlops-inference
+    track: stable
+    tier: serving
+spec:
+  type: ClusterIP
+  selector:
+    app: mlops-inference
+    track: stable
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8000
+      protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mlops-canary-service
+  namespace: mlops-production
+  labels:
+    app: mlops-inference
+    track: canary
+    tier: serving
+spec:
+  type: ClusterIP
+  selector:
+    app: mlops-inference
+    track: canary
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8000
+      protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mlops-unified-service
+  namespace: mlops-production
+  labels:
+    app: mlops-inference
+    tier: serving
+spec:
+  type: ClusterIP
+  selector:
+    app: mlops-inference
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8000
+      protocol: TCP

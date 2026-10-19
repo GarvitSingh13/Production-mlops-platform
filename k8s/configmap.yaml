@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mlops-inference-config
+  namespace: mlops-production
+  labels:
+    app: mlops-inference
+    environment: production
+data:
+  APP_ENV: "production"
+  LOG_LEVEL: "INFO"
+  MODEL_NAME: "CustomerChurnChampion"
+  ENABLE_ONNX_RUNTIME: "true"
+  PROMETHEUS_METRICS_ENABLED: "true"
+  SHAP_EXPLAINABILITY_ENABLED: "true"
+  MAX_BATCH_SIZE: "100"
+  PORT: "8000"
