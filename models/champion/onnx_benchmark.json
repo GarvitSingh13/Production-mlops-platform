@@ -1,0 +1,11 @@
+{
+  "numerical_parity_verified": true,
+  "max_absolute_difference": 9.542260803740987e-08,
+  "benchmark_sample_count": 250,
+  "sklearn_latency_p50_ms": 0.4712,
+  "sklearn_latency_p95_ms": 0.687,
+  "onnx_latency_p50_ms": 0.0107,
+  "onnx_latency_p95_ms": 0.0121,
+  "p95_speedup_factor": 56.73,
+  "onnx_model_path": "C:\\Users\\garvi\\OneDrive\\Desktop\\Production lof ML Ops Platform\\models\\champion\\model.onnx"
+}
