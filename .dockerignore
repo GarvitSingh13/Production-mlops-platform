@@ -1,0 +1,45 @@
+# Private interview & architectural reference
+PROJECT_OVERVIEW.md
+
+# Git & CI/CD
+.git
+.github
+.gitignore
+
+# Python virtual environments & bytecode
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+
+# Testing & Cache
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# MLflow experiments & local databases
+mlruns/
+mlartifacts/
+*.db
+*.sqlite
+
+# Raw datasets (keep image lean; only processed artifacts are bundled)
+data/raw/
+
+# Verification runners & test files (not needed inside serving container)
+run_stage*.py
+run_all_stages.py
+tests/
+
+# Temporary and local files
+.env*
+*.log
+Thumbs.db
+.DS_Store
