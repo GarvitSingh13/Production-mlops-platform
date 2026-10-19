@@ -1,7 +1,7 @@
 {
   "status": "triggered",
-  "trigger_id": "RETRAIN-20261019-214516",
-  "timestamp": "2026-10-19T21:45:16.001614+00:00",
+  "trigger_id": "RETRAIN-20261019-215116",
+  "timestamp": "2026-10-19T21:51:16.401689+00:00",
   "drift_severity": "CRITICAL",
   "drifted_features": [
     "credit_score",
