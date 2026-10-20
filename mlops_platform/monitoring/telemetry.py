@@ -6,6 +6,7 @@ engine-specific performance metrics, prediction distributions, and drift alerts.
 """
 
 from prometheus_client import (
+    CONTENT_TYPE_LATEST,
     REGISTRY,
     Counter,
     Gauge,
